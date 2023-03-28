@@ -1,0 +1,148 @@
+<tool id="annotatemyhits" name="annotateMyHits" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@">
+    <description>Comprehensively annotate a set of gene symbols with descriptions and more provided by the NCBI. Useful for reviewing hits.</description>
+    <macros>
+        <token name="@TOOL_VERSION@">0.0.1</token>
+        <token name="@VERSION_SUFFIX@">20</token>
+    </macros>
+    <requirements>
+        <requirement type="package" version="3.16.0">bioconductor-org.hs.eg.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.mm.eg.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.dm.eg.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.dr.eg.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.rn.eg.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.at.tair.db</requirement>
+        <requirement type="package" version="3.16.0">bioconductor-org.gg.eg.db</requirement>
+        <requirement type="package" version="1.8.0">r-jsonlite</requirement>
+        <requirement type="package" version="1.7.3">r-optparse</requirement>
+        <requirement type="package" version="4.2.2">R</requirement>
+    </requirements>
+    <version_command><![CDATA[
+echo $(R --version | grep version | grep -v GNU)", jsonlite version" $(R --vanilla --slave -e "library(jsonlite); cat(sessionInfo()\$otherPkgs\$jsonlite\$Version)" 2> /dev/null | grep -v -i "WARNING: ")", org.Hs.eg.db version" $(R --vanilla --slave -e "library(org.Hs.eg.db); cat(sessionInfo()\$otherPkgs\$org.Hs.eg.db\$Version)" 2> /dev/null | grep -v -i "WARNING: ")", org.Dr.eg.db version" $(R --vanilla --slave -e "library(org.Dr.eg.db); cat(sessionInfo()\$otherPkgs\$org.Dr.eg.db\$Version)" 2> /dev/null | grep -v -i "WARNING: ")", org.Dm.eg.db version" $(R --vanilla --slave -e "library(org.Dm.eg.db); cat(sessionInfo()\$otherPkgs\$org.Dm.eg.db\$Version)" 2> /dev/null | grep -v -i "WARNING: ")", org.Mm.eg.db version" $(R --vanilla --slave -e "library(org.Mm.eg.db); cat(sessionInfo()\$otherPkgs\$org.Mm.eg.db\$Version)" 2> /dev/null | grep -v -i "WARNING: ")", org.Rn.eg.db version" $(R --vanilla --slave -e "library(org.Rn.eg.db); cat(sessionInfo()\$otherPkgs\$org.Rn.eg.db\$Version)" 2> /dev/null | grep -v -i "WARNING: ")
+    ]]></version_command>
+    <command><![CDATA[
+        Rscript '$__tool_directory__'/annotateMyHits.R --id_file '$id_file'
+        --out_file '$out_tab'
+        --id_type '$id_type'
+        --organism '$organism'
+        --header '$file_has_header'
+        --col_num '$col_num'
+        --merge '$merge_output'
+        --acknowledge_limit '$limit_pull'
+    ]]></command>
+        <inputs>
+      <param name="id_file" type="data" format="tabular" label="File with list of identifiers to download annotation information for." help="A tabular file with a column containing one of the supported types of identifier, see Help below." />
+      <param name="col_num" type="data_column" data_ref="id_file" label="Identifier Column" refresh_on_change="true" />
+        <param name="file_has_header" type="boolean" truevalue="TRUE" falsevalue="FALSE" checked="True" label="File has header?" help="If this option is set to Yes, the tool will assume that the input file has a column header in the first row and the identifers commence on the second line. Default: No" />
+        <param name="organism" type="select" label="Organism" help="Select the organism the identifiers are from">
+            <option value="Hs" selected="true">Human</option>
+            <option value="Mm">Mouse</option>
+            <option value="Rn">Rat</option>
+            <option value="Dm">Fruit fly</option>
+            <option value="Dr">Zebrafish</option>
+            <option value="At">Arabidopsis thaliana</option>
+            <option value="Gg">Gallus gallus</option>
+        </param>
+        <param name="id_type" type="select" label="ID Type" help="Select the type of IDs in your input file">
+            <option value="SYMBOL" selected="true">Gene Symbol</option>
+            <option value="ENSEMBL" >Ensembl Gene</option>
+            <option value="ENSEMBLPROT">Ensembl Protein</option>
+            <option value="ENSEMBLTRANS">Ensembl Transcript</option>
+            <option value="ENTREZID">Entrez</option>
+            <option value="FLYBASE">FlyBase</option>
+            <option value="GO">GO</option>
+            <option value="PATH">KEGG</option>
+            <option value="MGI">MGI</option>
+            <option value="REFSEQ">RefSeq</option>
+            <option value="ZFIN">Zfin</option>
+        </param>
+        <param name="limit_pull" type="boolean" truevalue="TRUE" falsevalue="FALSE" checked="False" label="Bypass API call limit?" help="You may only retrieve 500 genes from the NCBI, if this is checked an unlimited number of records may be retrieved. Use with caution. Default: No" />
+        <param name="merge_output" type="boolean" truevalue="TRUE" falsevalue="FALSE" checked="False" label="Merge with input?" help="If this option is set to Yes, downloaded gene information will be merged with the original input data by gene identifiers, producing a single dataset containing all information. Default: No" />
+    </inputs>
+    <outputs>
+        <data name="out_tab" format="tabular" label="${tool.name} on ${on_string}: Annotated Hits" />
+    </outputs>
+    <help><![CDATA[
+
+.. class:: infomark
+
+**What it does**
+
+This tool retrieves annotation information for a list of gene identifiers from the NCBI. The tool can retrieve information for up to 500 genes at a time. For a given list of identifiers, the nomenclature symbol, chromosonal location and descriptive gene summary are returned. 
+
+It is useful to annotate a set of potential hits from screens or other differential expression analysis, you may merge the output with the original input data to produce a single dataset containing all information for easy reviewing.
+
+-----
+
+**Inputs**
+
+A tab-delimited file with identifiers in any column. Select which column the identifiers are in, supported identifiers include symbols, ENTREZIDs, ENSEMBL, and more. If the file contains a header row, select the file has a header option in the tool form above.
+
+Example:
+
+ ==================== ========== ========== ======================= 
+  SYMBOL               neg.fdr    neg.lfc    Additional columns...  
+ ==================== ========== ========== ======================= 
+  CDC7                 0.974354   -0.95161                          
+  CYP2A6               0.469236   -0.95254                          
+  invalid-identifier   0.939798   -3.6339                           
+  KPNB1                0.957205   -1.6658                           
+  LOC102724862         0.86938    -1.0775                           
+  LOC388849            0.80491    -0.95089                          
+  LSM6                 0.722814   -0.96862                          
+  MED30                0.904237   -0.96059                          
+  MYC                  0.894308   -0.9661                           
+ ==================== ========== ========== ======================= 
+
+  For the above example data, **SYMBOL** would be selected as the ID type.  
+
+    ID types supported for input are:
+
+    * **ENSEMBL**: Ensembl gene IDs
+    * **ENSEMBLPROT**: Ensembl protein IDs
+    * **ENSEMBLTRANS**: Ensembl transcript IDs
+    * **ENTREZID**: Entrez gene Identifiers
+    * **FLYBASE**: FlyBase accession numbers
+    * **GO**: GO Identifiers
+    * **MGI**: Jackson Laboratory MGI gene accession numbers
+    * **PATH**: KEGG Pathway Identifiers
+    * **REFSEQ**: Refseq Identifiers
+    * **SYMBOL**: The official gene symbol
+    * **ZFIN**: Zfin accession numbers
+
+-----
+
+**Outputs**
+
+From the above input example, if merge is selected the output would be as below:
+
+Example:
+
+ ==================== ========== ========== ======== ==================================================================== ================= =============== 
+  SYMBOL               neg.fdr    neg.lfc    ENTREZ   NAME                                                                 SUMMARY           CHR            
+ ==================== ========== ========== ======== ==================================================================== ================= =============== 
+  CDC7                 0.974354   -0.95161   8317     cell division cycle 7                                                Long summary...   1p22.2-p22.1   
+  CYP2A6               0.469236   -0.95254   1548     cytochrome P450 family 2 subfamily A member 6                        Long summary...   19q13.2        
+  invalid-identifier   0.939798   -3.6339    NA       NA                                                                   Long summary...   NA             
+  KPNB1                0.957205   -1.6658    3837     karyopherin subunit beta 1                                           Long summary...   17q21.32       
+  LOC102724862         0.86938    -1.0775    NA       NA                                                                   Long summary...   NA             
+  LOC388849            0.80491    -0.95089   NA       NA                                                                   Long summary...   NA             
+  LSM6                 0.722814   -0.96862   11157    LSM6 homolog, U6 small nuclear RNA and mRNA degradation associated   Long summary...   4q31.22        
+  MED30                0.904237   -0.96059   90390    mediator complex subunit 30                                          Long summary...   8q24.11        
+  MYC                  0.894308   -0.9661    4609     MYC proto-oncogene, bHLH transcription factor                        Long summary...   8q24.21        
+ ==================== ========== ========== ======== ==================================================================== ================= =============== 
+   
+The long summary is a descriptive summary for example for CDC7:
+
+This gene encodes a cell division cycle protein with kinase activity that is critical for the G1/S transition. The yeast homolog is also essential for initiation of DNA replication as cell division occurs. Overexpression of this gene product may be associated with neoplastic transformation for some tumors. Multiple alternatively spliced transcript variants that encode the same protein have been detected. [provided by RefSeq, Aug 2008]
+    ]]></help>
+        <citations>
+            <citation type="bibtex">
+                @unpublished{None,
+                author = {Ben Ringham},
+                title = {annotateMyHits},
+                year = {2023},
+                eprint = {None},
+                url = {}
+         }</citation>
+    </citations>
+</tool>
